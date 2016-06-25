@@ -1,0 +1,33 @@
+/*
+ * CCoverageReportReader.h
+ *
+ *  Created on: Dec 10, 2015
+ *      Author: ldw
+ */
+
+#ifndef CCOVERAGEREPORTREADER_H_
+#define CCOVERAGEREPORTREADER_H_
+
+#include <string>
+#include <vector>
+
+class CCoverageReportReader {
+	std::string m_filepath;
+	double m_lfCoveredNum;
+	double m_lfTotalNum;
+	bool m_bFileValid;
+public:
+	CCoverageReportReader(const std::string& filepath);
+	~CCoverageReportReader();
+
+	void readFile();
+
+	inline bool lfCoveredNum() const {return m_lfCoveredNum;}
+	inline double lfTotalNum() const {return m_lfTotalNum;}
+	inline double bFileValid() const {return m_bFileValid;}
+private:
+	bool GetCoverageInfo(const std::vector<char>& content, size_t &nCur);
+	bool GetLineCoverageInfoPerPackage(const std::string& line, double &lfCoveredNum, double &lfTotalNum);
+};
+
+#endif /* CCOVERAGEREPORTREADER_H_ */

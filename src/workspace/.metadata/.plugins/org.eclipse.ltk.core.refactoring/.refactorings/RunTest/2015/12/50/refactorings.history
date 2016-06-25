@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Move element &apos;RunTest.java&apos; to &apos;RunTest/src/org.ldw.RunTest&apos;&#x0A;- Original project: &apos;RunTest&apos;&#x0A;- Destination element: &apos;RunTest/src/org.ldw.RunTest&apos;&#x0A;- Original element: &apos;org.ldw.RunTest.java&apos;&#x0A;- Update references to refactored element" description="Move compilation unit" destination="/src&lt;org.ldw.RunTest" element1="/src&lt;org.ldw{RunTest.java" files="0" flags="589830" folders="0" id="org.eclipse.jdt.ui.move" patterns="*" policy="org.eclipse.jdt.ui.moveResources" qualified="false" references="true" stamp="1449804037210" units="1" version="1.0"/>
+</session>

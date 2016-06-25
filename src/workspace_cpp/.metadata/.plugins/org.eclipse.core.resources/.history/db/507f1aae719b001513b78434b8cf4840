@@ -1,0 +1,21 @@
+/*
+ * CFileMate.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CFILEMATE_H_
+#define CFILEMATE_H_
+
+#include <string>
+
+class CFileMate {
+public:
+	CFileMate();
+	~CFileMate();
+	int doMate();
+private:
+};
+
+#endif /* CFILEMATE_H_ */

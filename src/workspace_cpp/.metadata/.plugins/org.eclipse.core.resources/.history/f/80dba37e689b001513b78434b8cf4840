@@ -1,0 +1,17 @@
+/*
+ * CFileReader.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CFILEREADER_H_
+#define CFILEREADER_H_
+
+class CFileReader {
+public:
+	CFileReader();
+	~CFileReader();
+};
+
+#endif /* CFILEREADER_H_ */

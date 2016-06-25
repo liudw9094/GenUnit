@@ -1,0 +1,20 @@
+/*
+ * CCouple.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CCOUPLE_H_
+#define CCOUPLE_H_
+
+class CCouple {
+public:
+	CCouple(const std::string& m1Dir, const std::string& m2Dir, int nReproduceRate);
+	~CCouple();
+	int doX();
+private:
+	int doXOnce();
+};
+
+#endif /* CCOUPLE_H_ */

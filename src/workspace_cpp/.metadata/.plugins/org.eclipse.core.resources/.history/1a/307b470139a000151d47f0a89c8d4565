@@ -1,0 +1,34 @@
+/*
+ * CTRJudge.h
+ *
+ *  Created on: Dec 10, 2015
+ *      Author: ldw
+ */
+
+#ifndef CTRJUDGE_H_
+#define CTRJUDGE_H_
+
+#include <string>
+#include <vector>
+
+class CTRJudge {
+private:
+	const std::vector<std::string>& m_args;
+
+	std::string m_groupDir;
+	std::string m_dstDir;
+	int	m_nTopNum;
+	std::vector<std::string> m_DstDir;
+public:
+	CTRJudge(const std::vector<std::string>& args);
+	~CTRJudge();
+
+	int run();
+private:
+	bool parseCommands();
+	void showCommands();
+	int doCommands();
+	bool searchTestSuites();
+};
+
+#endif /* CTRJUDGE_H_ */

@@ -1,0 +1,17 @@
+/*
+ * Utils.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef UTILS_H_
+#define UTILS_H_
+
+
+#include <string>
+
+
+std::string getFileName(const string& filepath)
+
+#endif /* UTILS_H_ */

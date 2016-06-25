@@ -1,0 +1,20 @@
+/*
+ * CCoverageReportReader.h
+ *
+ *  Created on: Dec 10, 2015
+ *      Author: ldw
+ */
+
+#ifndef CCOVERAGEREPORTREADER_H_
+#define CCOVERAGEREPORTREADER_H_
+
+class CCoverageReportReader {
+	std::string m_filepath;
+	int nCoveredNum;
+	int nTotalNum;
+public:
+	CCoverageReportReader(const std::string& filepath);
+	~CCoverageReportReader();
+};
+
+#endif /* CCOVERAGEREPORTREADER_H_ */

@@ -1,0 +1,19 @@
+/*
+ * CFileMate.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CFILEMATE_H_
+#define CFILEMATE_H_
+
+#include <string>
+
+class CFileMate {
+public:
+	CFileMate(const std::string& m1Dir, const std::string& m2Dir);
+	~CFileMate();
+};
+
+#endif /* CFILEMATE_H_ */

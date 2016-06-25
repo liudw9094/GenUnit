@@ -1,0 +1,18 @@
+/*
+ * CCombGen.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CCOMBGEN_H_
+#define CCOMBGEN_H_
+
+class CCombGen {
+	const std::vector<std::string>& m_args;
+public:
+	CCombGen(const std::vector<std::string>& args);
+	~CCombGen();
+};
+
+#endif /* CCOMBGEN_H_ */

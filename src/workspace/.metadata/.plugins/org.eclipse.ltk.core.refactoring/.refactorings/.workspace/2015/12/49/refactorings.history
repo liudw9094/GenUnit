@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Delete 9 resources" deleteContents="true" description="Delete 9 resources" element1="/evosuite" element2="/evosuite-client" element3="/evosuite-generated" element4="/evosuite-master" element5="/evosuite-maven-plugin" element6="/evosuite-plugins" element7="/evosuite-runtime" element8="/evosuite-shaded" element9="/evosuite-standalone-runtime" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="9" stamp="1449032566949"/>
+</session>

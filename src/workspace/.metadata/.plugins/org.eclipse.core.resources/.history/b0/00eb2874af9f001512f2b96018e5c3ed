@@ -1,0 +1,49 @@
+package org.ldw;
+import org.junit.runner.JUnitCore;
+import org.junit.runner.Result;
+import org.junit.runner.notification.Failure;
+
+public class RunTest {
+	private Class<?> testClass;
+	public static void main(final String[] args) {
+		RunTest rtest = new RunTest();
+		rtest.run(args);
+	}
+	private void loadTest(String classname) {
+		ClassLoader classLoader = RunTest.class.getClassLoader();
+		try {
+			testClass = classLoader.loadClass(classname);
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+			try {
+				testClass = ClassLoader.getSystemClassLoader().loadClass(classname);
+			}
+			catch (ClassNotFoundException e1) {
+				e1.printStackTrace();
+				testClass = null;
+			}
+		}
+	}
+	private void runTest() {
+		if(testClass == null)
+			return;
+		Result result = JUnitCore.runClasses(testClass);
+		for (Failure failure : result.getFailures()) {
+	         System.out.println(failure.toString());
+	    }
+	    System.out.println(result.wasSuccessful());
+	}
+	private void showCommands() {
+		System.out.println("Command:");
+		System.out.println("java -cp <classpath> -jar RunTest <classname>");
+	}
+	public void run(String[] args) {
+		if(args.length != 1)
+		{
+			showCommands();
+			return;
+		}
+		loadTest(args[0]);
+		runTest();
+	}
+}

@@ -1,0 +1,17 @@
+/*
+ * CCoverageReportReader.h
+ *
+ *  Created on: Dec 10, 2015
+ *      Author: ldw
+ */
+
+#ifndef CCOVERAGEREPORTREADER_H_
+#define CCOVERAGEREPORTREADER_H_
+
+class CCoverageReportReader {
+public:
+	CCoverageReportReader();
+	~CCoverageReportReader();
+};
+
+#endif /* CCOVERAGEREPORTREADER_H_ */

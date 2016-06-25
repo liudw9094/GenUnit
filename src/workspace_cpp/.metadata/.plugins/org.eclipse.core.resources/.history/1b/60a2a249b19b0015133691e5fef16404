@@ -1,0 +1,39 @@
+/*
+ * CDataTest.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CDATATEST_H_
+#define CDATATEST_H_
+
+#include <string>
+#include <vector>
+
+class CDataTest {
+private:
+	const std::vector<std::string>& m_args;
+	std::string m_binDir;
+	std::string m_txDir;
+
+	std::string m_curDir;
+	std::string m_outputBinDir;
+	std::string m_outputReportDir;
+
+	std::vector<std::string> m_testFiles;
+	std::vector<std::string> m_testFileDependency;
+public:
+	CDataTest(const std::vector<std::string>& args);
+	~CDataTest();
+
+	int run();
+private:
+	bool parseCommands();
+	void showCommands();
+	bool findTestFiles()
+	int compileTests();
+	int runTests();
+};
+
+#endif /* CDATATEST_H_ */

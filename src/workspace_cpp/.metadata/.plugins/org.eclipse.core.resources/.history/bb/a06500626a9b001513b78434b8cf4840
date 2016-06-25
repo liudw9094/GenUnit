@@ -1,0 +1,36 @@
+/*
+ * CFileReader.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CFILEREADER_H_
+#define CFILEREADER_H_
+
+#include <string>
+#include <vector>
+
+class CFileReader {
+private:
+	std::string m_filepath;
+	std::string m_head;
+	std::vector<std::string> m_testCases;
+	std::string m_end;
+public:
+	CFileReader(const std::string& filepath);
+	~CFileReader();
+
+	const std::string& filepath() const {return m_filepath;}
+	const std::string& head() const {return m_head;}
+	const std::vector<std::string> testCases() const {return m_testCases;}
+	const std::string end() const {return m_end;}
+private:
+	void readFile();
+	void getHead(const vector<char>& content, int nCur);
+	void getTestCases(const vector<char>& content, int nCur);
+	void getOneTestCase(const vector<char>& content, int nCur);
+	void getEnd(const vector<char>& content, int nCur);
+};
+
+#endif /* CFILEREADER_H_ */

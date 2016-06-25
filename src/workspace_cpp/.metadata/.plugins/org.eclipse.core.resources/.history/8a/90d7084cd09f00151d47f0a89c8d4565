@@ -1,0 +1,88 @@
+/*
+ * CCoverageReportReader.cpp
+
+ *
+ *  Created on: Dec 10, 2015
+ *      Author: ldw
+ */
+#include <stdio.h>
+#include <iostream>
+#include <string>
+#include "CCoverageReportReader.h"
+
+using namespace std;
+
+CCoverageReportReader::CCoverageReportReader(const std::string& filepath) :
+		m_filepath(filepath), m_nCoveredNum(-1), m_nTotalNum(-1), m_bFileValid(false)
+{
+	// TODO Auto-generated constructor stub
+
+}
+
+CCoverageReportReader::~CCoverageReportReader() {
+	// TODO Auto-generated destructor stub
+}
+
+void CCoverageReportReader::readFile()
+{
+	vector<char> fileContent = getFileContent(m_filepath);
+	size_t cur = 0;
+	if(!GetCoverageInfo(fileContent, cur))
+		return;
+	m_bFileValid = true;
+}
+
+bool CCoverageReportReader::GetCoverageInfo(const std::vector<char>& content, size_t &nCur)
+{
+	string lines;
+	bool bFoundCoverage = false;
+	enum STATE
+	{
+		PRE_COVTEXT,
+		COVTEXT,
+		COVCONTENT
+	} state = PRE_COVTEXT;
+	while(nCur < content.size())
+	{
+		string line = getLine(content, nCur);
+		switch(state)
+		{
+		case PRE_COVTEXT:
+			if(line.find("COVERAGE BREAKDOWN BY PACKAGE:") != string.npos)
+				state = COVTEXT;
+			break;
+		case COVTEXT:
+			if(line.find("org.ldw.RunTest") != string::npos)
+			{
+				state = COVCONTENT;
+				m_nCoveredNum = m_nTotalNum = 0;
+				bFoundCoverage = true;
+			}
+			break;
+		case COVCONTENT:
+			int nCoveredNum, nTotalNum;
+			if(GetCoverageInfoPerPackage(line, nCoveredNum, nTotalNum))
+			{
+				m_nCoveredNum += m_nCoveredNum;
+				m_nTotalNum += nTotalNum;
+			}
+		}
+	}
+}
+
+bool CCoverageReportReader::GetCoverageInfoPerPackage(const std::string& line,
+													int &nCoveredNum,
+													int &nTotalNum)
+{
+	for(size_t pos=0; (pos = line.find("\t"), pos) != string::npos; )
+	{
+		line.replace(pos, 1, " ");
+	}
+	for(size_t pos=0; (pos = line.find("  ")) != string::npos; )
+	{
+		for(size_t pos1=pos; (pos1 = line.find("  ")) != string::npos; )
+	}
+	"100% (4/4)	96%  (24/25)	91%  (307/336)	94%  (102.1/109)	org.ldw"
+}
+
+

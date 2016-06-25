@@ -1,0 +1,19 @@
+/*
+ * CFileReader.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CFILEREADER_H_
+#define CFILEREADER_H_
+
+#include <string>
+
+class CFileReader {
+public:
+	CFileReader(const std::string& filepath);
+	~CFileReader();
+};
+
+#endif /* CFILEREADER_H_ */

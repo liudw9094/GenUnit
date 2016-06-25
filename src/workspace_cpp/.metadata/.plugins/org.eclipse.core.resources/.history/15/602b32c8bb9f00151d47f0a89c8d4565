@@ -1,0 +1,22 @@
+/*
+ * CTRJudge.h
+ *
+ *  Created on: Dec 10, 2015
+ *      Author: ldw
+ */
+
+#ifndef CTRJUDGE_H_
+#define CTRJUDGE_H_
+
+#include <string>
+#include <vector>
+
+class CTRJudge {
+private:
+	const std::vector<std::string>& m_args;
+public:
+	CTRJudge();
+	~CTRJudge();
+};
+
+#endif /* CTRJUDGE_H_ */

@@ -1,0 +1,205 @@
+/*
+ * CCouple.cpp
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+#include <string.h>
+#include <stdlib.h>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include "CCouple.h"
+#include "CFileReader.h"
+#include "Utils.h"
+
+using namespace std;
+
+CCouple::CCouple(const std::string& m1Dir, const std::string& m2Dir,
+		const std::string& outputDir,int nReproduceRate, int nBeginIndex) :
+m_m1Dir(m1Dir),
+m_m2Dir(m2Dir),
+m_outputDir(outputDir),
+m_nReproduceRate(nReproduceRate),
+m_nBeginIndex(nBeginIndex)
+{
+	// TODO Auto-generated constructor stub
+
+}
+
+CCouple::~CCouple() {
+	// TODO Auto-generated destructor stub
+}
+
+
+int CCouple::doX()
+{
+	int nSuccess = 0;
+	if(!findTestFiles())
+		return -1;
+	if(m_testFiles1.empty() || m_testFiles2.empty())
+		return -1;
+	if(m_testFiles1.size() != m_testFiles2.size())
+		return -2;
+	for(int i = 0; i < m_nReproduceRate; ++i)
+	{
+		int willing = abs(rand()) % 10;
+		if(willing >= 2)
+		{
+			if(doXOnce() >= 0)
+			{
+				++nSuccess;
+				++m_nBeginIndex;
+			}
+		}
+	}
+	return nSuccess;
+}
+
+int CCouple::doXOnce()
+{
+	char buf[256];
+	sprintf(buf, "%d", m_nBeginIndex);
+	string outputDir = m_outputDir + "/t" + buf;
+	//string outputDir = m_outputDir;
+	// Remove output dir
+	string commandRmDir = string("rm -rf \"") + outputDir + "\"";
+#ifdef _DEBUG
+	cout<<"command: " + commandRmDir <<endl;
+#endif
+	system(commandRmDir.c_str());
+
+	// initialize
+	m_countCases1Usage =  m_countCases2Usage = 0;
+
+	size_t len = m_testFiles1.size();
+	for(size_t i = 0; i < len; ++i)
+	{
+		const string &fp1 = m_testFiles1[i];
+		const string &fp2 = m_testFiles2[i];
+		string relFilePath1 = getRelativeFilePath(fp1, m_m1Dir);
+		string relFilePath2 = getRelativeFilePath(fp2, m_m2Dir);
+		if(relFilePath1 != relFilePath2)
+			return -1;
+		CFileReader f1(fp1);
+		CFileReader f2(fp2);
+		if(!f1.bFileValid() || !f2.bFileValid())
+			return -1;
+		ofstream outputFile;
+		string outputFilePath = outputDir + "/" +relFilePath1;
+
+		// create directory
+		mkpath(getDirectory(outputFilePath).c_str(), S_IRUSR| S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IROTH);
+
+		// write file
+		outputFile.open(outputFilePath.c_str(), ofstream::out | ofstream::app);
+		if(!outputFile.is_open())
+			return -1;
+		outputFile<<f1.head();
+		auto cases1 = f1.testCases();
+		auto cases2 = f2.testCases();
+		size_t len = max(cases1.size(), cases2.size());
+		for(size_t j = 0; j < len; ++j)
+		{
+			const string *pCase1 = NULL, *pCase2 = NULL;
+			if(j < cases1.size())
+				pCase1 = &cases1[j];
+			if(j < cases2.size())
+				pCase2 = &cases2[j];
+			int nChoice1 = rand() % 2;
+			if(nChoice1)
+			{
+				if(pCase1)
+				{
+					outputFile<<*pCase1;
+					++m_countCases1Usage;
+				}
+			}
+			else
+			{
+				if(pCase2)
+				{
+					outputFile<<*pCase2;
+					++m_countCases2Usage;
+				}
+			}
+		}
+		outputFile<<f1.end();
+		outputFile.close();
+
+		// copy dependency file
+		const string& fp3 = m_testFileDependency[i];
+		string relFilePathDep = getRelativeFilePath(fp3, m_m1Dir);
+		string outputFilePathDep = outputDir + "/" +relFilePathDep;
+		string commandCp = string("cp \"") + fp3 + "\" \"" +  outputFilePathDep + "\"";
+#ifdef _DEBUG
+		cout<<"command: " + commandCp <<endl;
+#endif
+		system(commandCp.c_str());
+	}
+	saveChildIdentity(outputDir);
+	return 0;
+}
+
+void CCouple::saveChildIdentity(const string& outputDir)
+{
+	stringstream id;
+	id<<"parent1: " << m_m1Dir << "\n";
+	id<<"parent2: " << m_m1Dir << "\n";
+	id<<"index: " << m_nBeginIndex << "\n";
+	int totalCases = m_countCases1Usage + m_countCases2Usage;
+	id<<"gen1: " << m_countCases1Usage << "/" << totalCases << "\n";
+	id<<"gen2: " << m_countCases2Usage << "/" << totalCases << "\n";
+
+	string fileSave = outputDir + "/CombGen-ID/Identity.txt";
+	// create directory
+	mkpath(getDirectory(fileSave).c_str(), S_IRUSR| S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IROTH);
+	// write file
+	ofstream outputFile;
+	outputFile.open(fileSave.c_str(), ofstream::out);
+	if(!outputFile.is_open())
+		return;
+	outputFile<<id<<endl;
+	outputFile.close();
+}
+
+static void getFilesByRightKey(const vector<string>& in, vector<string>& out, const char* key)
+{
+	for(size_t i = 0; i < in.size(); ++i)
+	{
+		const string& filepath = in[i];
+		size_t pos = filepath.rfind(key);
+		if(pos !=std::string::npos && pos == filepath.length() - strlen(key))
+			out.push_back(filepath);
+	}
+}
+static void getTestFiles(const vector<string>& in, vector<string>& out)
+{
+	getFilesByRightKey(in, out, "ESTest.java");
+}
+
+static void getTestDependentFiles(const vector<string>& in, vector<string>& out)
+{
+	getFilesByRightKey(in, out, "ESTest_scaffolding.java");
+}
+
+
+bool CCouple::findTestFiles()
+{
+	string m1Dir_java = m_m1Dir + "/evosuite-tests";
+	string m2Dir_java = m_m2Dir + "/evosuite-tests";
+
+	{
+		vector<string> tmpfiles1 = enumFiles(m1Dir_java, true);
+		vector<string> tmpfiles2 = enumFiles(m2Dir_java, true);
+		getTestFiles(tmpfiles1, m_testFiles1);
+		getTestFiles(tmpfiles2, m_testFiles2);
+		getTestDependentFiles(tmpfiles1, m_testFileDependency);
+	}
+	if(m_testFiles1.size() == 0 || m_testFiles2.size() == 0 || m_testFileDependency.size() == 0)
+		return false;
+	if(m_testFiles1.size() != m_testFiles2.size() ||
+		m_testFiles2.size() != m_testFileDependency.size())
+		return false;
+	return true;
+}

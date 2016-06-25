@@ -1,0 +1,19 @@
+/*
+ * Utils.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef UTILS_H_
+#define UTILS_H_
+
+
+#include <string>
+#include <vector>
+
+std::string getFileName(const std::string& filepath);
+std::vector<std::string> enumDirs(const std::string& parentDir);
+std::vector<std::string>  enumFiles(const std::string& parentDir);
+
+#endif /* UTILS_H_ */

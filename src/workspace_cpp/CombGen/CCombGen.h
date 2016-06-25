@@ -1,0 +1,42 @@
+/*
+ * CCombGen.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CCOMBGEN_H_
+#define CCOMBGEN_H_
+
+#include <string>
+#include <vector>
+
+class CCombGen {
+private:
+	const std::vector<std::string>& m_args;
+	enum _MODE {
+		GROUP,
+		MATE
+	} m_mode;
+
+	std::string m_strGroupDir;
+	int m_nMateRate;
+	int m_nReproduceRate;
+	int m_nMutationRate;
+	int m_nSeed;
+	std::string m_strM1;
+	std::string m_strM2;
+	int m_nBeginIndex;
+public:
+	CCombGen(const std::vector<std::string>& args);
+	~CCombGen();
+
+	void showCommands();
+	int run();
+private:
+	bool parseCommands();
+	int doGroup();
+	int doMate();
+};
+
+#endif /* CCOMBGEN_H_ */

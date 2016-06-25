@@ -1,0 +1,89 @@
+/*
+ * COrgGen.cpp
+ *
+ *  Created on: Dec 4, 2015
+ *      Author: ldw
+ */
+
+
+#include "COrgGen.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include "CGATask.h"
+#include <iostream>
+
+using namespace std;
+
+COrgGen::COrgGen(const std::vector<std::string>& args) :
+	m_args(args), m_numCases(-1), m_seed(-1)
+{
+
+}
+
+COrgGen::~COrgGen()
+{
+}
+
+void COrgGen::enumCommands()
+{
+	cout<<"OrgGen <srcDir> <binDir> "
+		"<number of cases> [seed]"<<endl;
+}
+
+bool COrgGen::parseCommands()
+{
+	size_t len = m_args.size();
+	if(len < 4 || len > 5)
+	{
+		enumCommands();
+		return false;
+	}
+	else
+	{
+		m_srcDir = m_args[1];
+		m_binDir = m_args[2];
+		m_numCases = atoi(m_args[3].c_str());
+		if (len > 4)
+			m_seed = atoi(m_args[4].c_str());
+		else
+		{
+			srand(time(NULL));
+			m_seed = rand();
+		}
+
+		if(m_numCases < 1)
+		{
+			cerr<<"number of cases should be larger than 0!"<<endl;
+		}
+		return true;
+	}
+}
+
+
+void COrgGen::startTasks()
+{
+	string commandRmDir = "rm -rf output";
+#ifdef _DEBUG
+	cout<<"commands:\n"<<commandRmDir<<endl;
+#endif
+	system(commandRmDir.c_str());
+	saveProfile();
+	for(int i = 0; i < m_numCases; ++i)
+	{
+		CGATask tsk(*this, i);
+		tsk.run();
+	}
+}
+
+void COrgGen::saveProfile()
+{
+
+}
+
+int COrgGen::run()
+{
+	if(!parseCommands())
+		return -1;
+	startTasks();
+	return 0;
+}

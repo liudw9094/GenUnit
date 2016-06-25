@@ -1,0 +1,17 @@
+/*
+ * CDataTest.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CDATATEST_H_
+#define CDATATEST_H_
+
+class CDataTest {
+public:
+	CDataTest();
+	~CDataTest();
+};
+
+#endif /* CDATATEST_H_ */

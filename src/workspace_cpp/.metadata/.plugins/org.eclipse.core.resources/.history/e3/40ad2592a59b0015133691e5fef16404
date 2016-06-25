@@ -1,0 +1,39 @@
+/*
+ * CCouple.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CCOUPLE_H_
+#define CCOUPLE_H_
+
+#include <string>
+#include <vector>
+
+class CCouple {
+private:
+	std::string m_m1Dir;
+	std::string m_m2Dir;
+	std::string m_outputDir;
+	int m_nReproduceRate;
+	int m_nBeginIndex;
+	std::vector<std::string> m_testFiles1;
+	std::vector<std::string> m_testFiles2;
+	std::vector<std::string> m_testFileDependency;
+
+	int m_countCases1Usage;
+	int m_countCases2Usage;
+public:
+	CCouple(const std::string& m1Dir, const std::string& m2Dir,
+			const std::string& outputDir, int nReproduceRate,
+			int nBeginIndex);
+	~CCouple();
+	int doCross();
+private:
+	int doXOnce();
+	void saveChildIdentity(const std::string& outputDir);
+	bool findTestFiles();
+};
+
+#endif /* CCOUPLE_H_ */

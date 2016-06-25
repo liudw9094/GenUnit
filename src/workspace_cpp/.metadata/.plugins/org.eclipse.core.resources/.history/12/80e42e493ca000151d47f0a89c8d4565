@@ -1,0 +1,45 @@
+/*
+ * CTRJudge.h
+ *
+ *  Created on: Dec 10, 2015
+ *      Author: ldw
+ */
+
+#ifndef CTRJUDGE_H_
+#define CTRJUDGE_H_
+
+#include <string>
+#include <vector>
+
+class CTRJudge {
+private:
+	struct SUITEREPORT
+	{
+		std::string suitepath;
+		double lfLineCoverage;
+		double lfTotalLine;
+		double lfFinalScore;
+	};
+	const std::vector<std::string>& m_args;
+
+	std::string m_groupDir;
+	std::string m_dstDir;
+	int	m_nTopNum;
+	std::vector<std::string> m_vsuitePaths;
+	std::vector<SUITEREPORT> m_vsuiteReports;
+public:
+	CTRJudge(const std::vector<std::string>& args);
+	~CTRJudge();
+
+	int run();
+private:
+	bool parseCommands();
+	void showCommands();
+	int doCommands();
+	bool searchTestSuites();
+	int getReportInfos();
+	bool getReportInfo(const std::string& suitepath);
+
+};
+
+#endif /* CTRJUDGE_H_ */

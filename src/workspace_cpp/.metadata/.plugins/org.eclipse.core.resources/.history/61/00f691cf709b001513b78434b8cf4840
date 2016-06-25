@@ -1,0 +1,19 @@
+/*
+ * CFileMate.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CFILEMATE_H_
+#define CFILEMATE_H_
+
+#include <stirng>
+
+class CFileMate {
+public:
+	CFileMate(stirng m1Dir, stirng m2Dir);
+	~CFileMate();
+};
+
+#endif /* CFILEMATE_H_ */

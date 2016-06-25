@@ -1,0 +1,140 @@
+/*
+ * CFileReader.cpp
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#include "CFileReader.h"
+#include <stdio.h>
+#include <iostream>
+
+using namespace std;
+
+CFileReader::CFileReader(const std::string& filepath) :
+m_filepath(filepath),
+m_bFileValid(false)
+{
+	readFile();
+}
+
+CFileReader::~CFileReader()
+{
+	// TODO Auto-generated destructor stub
+}
+
+static vector<char> getFileContent(const string& filePath)
+{
+	vector<char> buf;
+	FILE *file = fopen(filePath.c_str(), "r");
+	if(file != NULL)
+	{
+		fseek(file, 0, SEEK_END);
+		long size = ftell(file);
+		fseek(file, 0, SEEK_SET);
+		if(size > 0)
+		{
+			buf.resize(size);
+			fread(&buf[0], size, 1, file);
+			for(size_t i = 0; i < buf.size(); ++i)
+				putchar(buf[i]);
+			cout<<endl;
+		}
+		fclose(file);
+	}
+	return buf;
+}
+
+void CFileReader::readFile()
+{
+	vector<char> fileContent = getFileContent(m_filepath);
+	size_t cur = 0;
+	if(!getHead(fileContent, cur))
+		return;
+	if(!getTestCases(fileContent, cur))
+		return;
+	if(!getEnd(fileContent, cur))
+		return;
+	m_bFileValid = true;
+}
+
+static string getLine(const vector<char>& content, size_t &nCur)
+{
+	string line;
+	for(;nCur < content.size() && content[nCur] != '\n'; ++nCur)
+		line.push_back(content[nCur]);
+	if(nCur < content.size() && content[nCur] == '\n')
+		line.push_back('\n');
+	return line;
+}
+
+bool CFileReader::getHead(const vector<char>& content, size_t &nCur)
+{
+	string lines;
+	bool bFoundHead = false;
+	while(nCur < content.size())
+	{
+		string line = getLine(content, nCur);
+		lines.append(line);
+		if(line.find("public class") != string::npos)
+		{
+			m_head = lines;
+			bFoundHead = true;
+			break;
+		}
+	}
+	return bFoundHead;
+}
+
+bool CFileReader::getTestCases(const vector<char>& content, size_t &nCur)
+{
+	while(getOneTestCase(content, nCur));
+	return true;
+}
+
+bool CFileReader::getOneTestCase(const vector<char>& content, size_t &nCur)
+{
+	string lines;
+	enum
+	{
+		PREFUNC,
+		FUNCHEADNBODY,
+		FUNCEND
+	} statue = PREFUNC;
+	int braces = 0;
+	while(nCur < content.size() && statue != FUNCEND)
+	{
+		string line = getLine(content, nCur);
+		lines.append(line);
+		if(statue == PREFUNC && line.find("public void ") <= line.length())
+			statue = FUNCHEADNBODY;
+		if(statue != PREFUNC)
+		{
+			// count braces;
+			size_t cur = 0;
+			while((cur = line.find("{", cur)) !=std::string::npos )
+			{
+				++braces;
+				++cur;
+			}
+			cur = 0;
+			while((cur = line.find("}", cur)) !=std::string::npos )
+			{
+				--braces;
+				++cur;
+			}
+		}
+		if(braces == 0)
+		{
+			m_testCases.push_back(lines);
+			statue = FUNCEND;
+		}
+	}
+	return statue == FUNCEND;
+}
+
+bool CFileReader::getEnd(const vector<char>& content, size_t &nCur)
+{
+	m_end = "\n}";
+	return true;
+}

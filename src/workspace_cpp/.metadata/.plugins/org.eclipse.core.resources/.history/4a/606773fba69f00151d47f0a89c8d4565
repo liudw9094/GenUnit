@@ -1,0 +1,243 @@
+/*
+ * CDataTest.cpp
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#include "CDataTest.h"
+#include <iostream>
+#include <stdlib.h>
+#include <string.h>
+#include "Utils.h"
+
+using namespace std;
+
+CDataTest::CDataTest(const std::vector<std::string>& args) :
+		m_args(args), m_mode(MODE_ONE)
+{
+	m_curDir = getDirectory(getexepath());
+	m_outputBinDir = m_curDir + "/test_bin";
+
+	m_evoRuntimePath = m_curDir + "/evo/evosuite-1.0.1.jar";
+	m_emmaPath = m_curDir + "/jar/emma.jar";
+	m_junitPath = m_curDir + "/jar/junit.jar";
+	m_hamcrestPath = m_curDir + "/jar/hamcrest-core.jar";
+	m_runtestPath = m_curDir + "/jar/RunTest";
+}
+
+CDataTest::~CDataTest() {
+	// TODO Auto-generated destructor stub
+}
+
+int CDataTest::run()
+{
+	if(!parseCommands())
+		return -1;
+	if(m_mode ==  MODE_ONE)
+		return runModeOne();
+	else
+		return runModeGroup();
+}
+
+int CDataTest::runModeOne()
+{
+	m_outputReportDir = m_txDir + "/DataTest_Report";
+	int rt = compileTests();
+	if(rt < 0)
+		return rt;
+	rt = runTests();
+	return rt;
+}
+
+int CDataTest::runModeGroup()
+{
+	vector<string> childDirPath = enumDirs(m_groupDir);
+	if(childDirPath.empty())
+		return -1;
+	int success = 0;
+	for(size_t i = 0; i < childDirPath.size(); ++i)
+	{
+		m_txDir = childDirPath[i];
+		success = (runModeOne() < 0 ? success : (success + 1));
+	}
+	return success;
+}
+
+bool CDataTest::parseCommands()
+{
+	if(m_args.size() < 3)
+	{
+		showCommands();
+		return false;
+	}
+	if(m_args[1] != "-g")
+	{
+		m_binDir = fixpath(m_args[1]);
+		m_txDir = fixpath(m_args[2]);
+		m_mode = MODE_ONE;
+	}
+	else
+	{
+		m_binDir = fixpath(m_args[2]);
+		m_groupDir = fixpath(m_args[3]);
+		m_mode = MODE_GROUP;
+	}
+	return true;
+}
+
+void CDataTest::showCommands()
+{
+	cout<<"1) DataTest <binDir> <txDir>"<<endl;
+	cout<<"2) DataTest -g <binDir> <groupDir>"<<endl;
+}
+
+static void getFilesByRightKey(const vector<string>& in, vector<string>& out, const char* key)
+{
+	for(size_t i = 0; i < in.size(); ++i)
+	{
+		const string& filepath = in[i];
+		size_t pos = filepath.rfind(key);
+		if(pos !=std::string::npos && pos == filepath.length() - strlen(key))
+			out.push_back(filepath);
+	}
+}
+static void getTestFiles(const vector<string>& in, vector<string>& out)
+{
+	getFilesByRightKey(in, out, "ESTest.java");
+}
+
+static void getTestDependentFiles(const vector<string>& in, vector<string>& out)
+{
+	getFilesByRightKey(in, out, "ESTest_scaffolding.java");
+}
+
+bool CDataTest::findTestFiles()
+{
+	m_testFiles.clear();
+	m_testFileDependency.clear();
+
+	string javaDir = m_txDir + "/evosuite-tests";
+	{
+		vector<string> tmpfiles1 = enumFiles(javaDir, true);
+		getTestFiles(tmpfiles1, m_testFiles);
+		getTestDependentFiles(tmpfiles1, m_testFileDependency);
+	}
+	if(m_testFiles.size() == 0 || m_testFileDependency.size() == 0)
+		return false;
+	if(m_testFiles.size() != m_testFileDependency.size())
+		return false;
+	return true;
+}
+
+static string getClassNamePath(const string& javapath,
+							const string& srcdir)
+{
+	string szRelativePath = getRelativeFilePath(javapath, srcdir);
+	string omittedExtention = getDirectory(szRelativePath) + "/" + getFileTitle(szRelativePath);
+	for(size_t pos = omittedExtention.find("/"); pos != string::npos; pos = omittedExtention.find("/"))
+		omittedExtention[pos] = '.';
+	return omittedExtention;
+}
+
+int CDataTest::compileTests()
+{
+	// clear outputBin dir
+	string commandRMDir = string("rm -rf \"") + m_outputBinDir + "\"";
+#ifdef _DEBUG
+	cout<<"command: "<<commandRMDir<<endl;
+#endif
+	system(commandRMDir.c_str());
+	//make outputBin dir.
+	mkpath(m_outputBinDir.c_str());
+
+	m_classNames.clear();
+
+	string srcDir = m_txDir + "/evosuite-tests";
+	if(!findTestFiles())
+		return -1;
+	for(size_t i = 0; i < m_testFileDependency.size(); ++i)
+	{
+		if(compileTestFile(m_testFileDependency[i]) < 0)
+			return -1;
+	}
+	for(size_t i = 0; i < m_testFiles.size(); ++i)
+	{
+		if(compileTestFile(m_testFiles[i]) < 0)
+			return -1;
+		string testClassName = getClassNamePath(m_testFiles[i], srcDir);
+		if(testClassName != "")
+			m_classNames.push_back(testClassName);
+	}
+	return 0;
+}
+
+int CDataTest::compileTestFile(const std::string& filepath)
+{
+	// compiling command
+	string command = string("javac -d \"") + m_outputBinDir + "\""
+			+ " -classpath \""
+			+ m_binDir + "\":\""
+			+ m_outputBinDir + "\":\""
+			+ m_evoRuntimePath + "\":\""
+			+ m_junitPath + "\":\""
+			+ m_hamcrestPath +"\" "
+			+ filepath;
+#ifdef _DEBUG
+	cout<<"command: "<<command<<endl;
+#endif
+	return system(command.c_str());
+}
+
+
+int CDataTest::runTests()
+{
+	// clear outputReport dir
+	string commandRMDir = string("rm -rf \"") + m_outputReportDir + "\"";
+#ifdef _DEBUG
+	cout<<"command: "<<commandRMDir<<endl;
+#endif
+	system(commandRMDir.c_str());
+	//make outputReport dir.
+	mkpath(m_outputReportDir.c_str());
+
+	// run tests
+	for(size_t i = 0; i < m_classNames.size(); ++i)
+		executeATest(m_classNames[i]);
+	return 0;
+}
+
+int CDataTest::executeATest(const std::string& className)
+{
+	// execute command
+	string repoPath = m_outputReportDir + "/report-" + className + ".txt";
+	string commandCD = string("cd ") + "\"" + m_outputReportDir + "\"";
+	string commandJava = string("java")
+			+ " -classpath \""
+			+ m_emmaPath + "\":\""
+			+ " emma"
+			+ " -classpath \""
+			+ m_runtestPath + "\":\""
+			+ m_binDir + "\":\""
+			+ m_outputBinDir + "\":\""
+			+ m_evoRuntimePath + "\":\""
+			+ m_junitPath + "\":\""
+			+ m_hamcrestPath +"\" "
+			+ "org.ldw.RunTest " + className
+			+ " > \"" + repoPath +"\"";
+	stirng command = commandCD + "&" + commandJava;
+	/*
+	string command = string("java")
+			+ " -classpath \""
+			+ m_binDir + ";"
+			+ m_outputBinDir + ";"
+			+ m_evoRuntimePath + ";"
+			+ m_junitPath + ";"
+			+ m_hamcrestPath +"\" "
+			+ "-jar \"" + m_runtestPath + "\" " + className;
+	*/
+#ifdef _DEBUG
+	cout<<"command: "<<command<<endl;
+#endif
+	return system(command.c_str());
+}

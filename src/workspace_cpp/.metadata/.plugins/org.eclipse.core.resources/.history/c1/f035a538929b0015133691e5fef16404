@@ -1,0 +1,201 @@
+/*
+ * CCombGen.cpp
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#include <iostream>
+#include <stdlib.h>
+#include "CCombGen.h"
+
+#include "Utils.h"
+#include "CCouple.h"
+
+using namespace std;
+
+CCombGen::CCombGen(const std::vector<std::string>& args) :
+m_args(args),
+m_mode((_MODE)-1),
+m_nMateRate(-1),
+m_nReproduceRate(-1),
+m_nMutationRate(-1),
+m_nSeed(-1),
+m_nBeginIndex(-1)
+{
+	// TODO Auto-generated constructor stub
+
+}
+
+CCombGen::~CCombGen()
+{
+	// TODO Auto-generated destructor stub
+}
+
+void CCombGen::showCommands()
+{
+	cout<<"Command:"<<endl;
+	cout<<"1) CombGen -g <group directory> <mate percentage (1-1000)> <reproduction rate (1-20)> <mutation percentage (0-100)> [<seed>]"<<endl;
+	cout<<"2) CombGen -m <test1dir> <test2dir> <reproduction rate (1-20)> <mutation percentage (0-100)> [<seed>] [beginIndex]"<<endl;
+}
+
+int CCombGen::run()
+{
+	if (!parseCommands())
+	{
+		showCommands();
+		return -11;
+	}
+	if (m_mode == GROUP)
+		return doGroup();
+	else if (m_mode == MATE)
+		return doMate();
+	else
+		return -1;
+}
+
+bool CCombGen::parseCommands()
+{
+	int nLen = m_args.size();
+	if (nLen < 6 || nLen > 8)
+		return false;
+	if (m_args[1] == "-g")
+	{
+		if(nLen > 7)
+			return false;
+		m_mode = GROUP;
+		m_strGroupDir = m_args[2];
+		m_nMateRate = atoi(m_args[3].c_str());
+		m_nReproduceRate = atoi(m_args[4].c_str());
+		m_nMutationRate = atoi(m_args[5].c_str());
+		m_nBeginIndex = 0;
+	}
+	else if (m_args[1] == "-m")
+	{
+		m_mode = MATE;
+		m_strM1 = m_args[2];
+		m_strM2 = m_args[3];
+		m_nReproduceRate = atoi(m_args[4].c_str());
+		m_nMutationRate = atoi(m_args[5].c_str());
+		if (nLen < 8)
+			m_nBeginIndex = 0;
+		else
+			m_nBeginIndex = atoi(m_args[7].c_str());
+	}
+	else
+		return false;
+	if(m_strGroupDir[0] != '/')
+		m_strGroupDir = getDirectory(getexepath()) + "/" + m_strGroupDir;
+	if (nLen < 7)
+	{
+		srand(time(NULL));
+		m_nSeed = rand();
+	}
+	else
+		m_nSeed = atoi(m_args[6].c_str());
+	srand(m_nSeed);
+	return true;
+}
+
+struct SCOUPLE
+{
+	string m1, m2;
+	int nSeed;
+};
+
+static vector<SCOUPLE> makeCouples(const vector<string>& childDir, int nMateRate)
+{
+	vector<SCOUPLE> couples;
+	int nDirNum = childDir.size();
+	if(nDirNum >= 2)
+	{
+		vector<string> mateLevel[11];
+		mateLevel[0].insert(mateLevel[0].begin(), childDir.begin(), childDir.end());
+
+		float mateRate = (float)nMateRate/100;
+		int indexBeg = 0;
+		while(mateRate > 0 && !mateLevel[indexBeg].empty())
+		{
+			vector<string> &vPool = mateLevel[indexBeg];
+			vector<string> &vNextPool = mateLevel[indexBeg + 1];
+			if(vPool.size() >= 2)
+			{
+				int nCount = vPool.size();
+				int nIndex1 = rand() % nCount;
+				int nIndex2 = nIndex1;
+				while(nIndex2 == nIndex1)
+					nIndex2 = rand() % nCount;
+				if(nIndex1 > nIndex2)
+					swap(nIndex1, nIndex2);
+				SCOUPLE couple;
+				vNextPool.push_back(couple.m1 = vPool[nIndex1]);
+				vNextPool.push_back(couple.m2 = vPool[nIndex2]);
+				vPool.erase(vPool.begin() + nIndex2);
+				vPool.erase(vPool.begin() + nIndex1);
+				couple.nSeed = rand();
+				couples.push_back(couple);
+
+				if(mateRate > 1)
+				{
+					if(vPool.empty())
+					{
+						mateRate = mateRate - 1;
+						indexBeg = indexBeg + 1;
+					}
+				}
+				else
+					mateRate = mateRate - (float)2 / nDirNum;
+			}
+			else if(vPool.size() == 1)
+			{
+				vNextPool.push_back(vPool[0]);
+				vPool.erase(vPool.begin());
+				if(mateRate > 1)
+				{
+					mateRate = mateRate - 1;
+					indexBeg = indexBeg + 1;
+				}
+				else
+					mateRate = mateRate - (float)1 / nDirNum;
+			}
+		}
+	}
+	return couples;
+}
+
+int CCombGen::doGroup()
+{
+	// make mates
+	vector<string> childDir = enumDirs(m_strGroupDir);
+	vector<SCOUPLE> couples = makeCouples(childDir, m_nMateRate);
+	if(couples.empty())
+		return -1;
+
+	// run CombGen from couples
+	int m_nBeginIndex = 0;
+	for(size_t i = 0; i < couples.size(); ++i)
+	{
+		const SCOUPLE& couple = couples[i];
+		m_strM1 = couple.m1;
+		m_strM2 = couple.m2;
+		cout<<m_strM1<<endl;
+		cout<<m_strM2<<endl;
+		m_nSeed = couple.nSeed;
+		srand(m_nSeed);
+		int result = doMate();
+		if (result > 0)
+			m_nBeginIndex += result;
+	}
+
+	return 0;
+}
+
+
+int CCombGen::doMate()
+{
+	char buf[256];
+	sprintf(buf, "%d", m_nBeginIndex);
+	string outputDir = getexepath() + "/output_comb/t" + buf;
+	CCouple cp(m_strM1, m_strM2, outputDir, m_nReproduceRate, m_nBeginIndex);
+	return cp.doX();
+}

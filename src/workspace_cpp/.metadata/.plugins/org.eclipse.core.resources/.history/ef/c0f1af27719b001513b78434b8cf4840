@@ -1,0 +1,17 @@
+/*
+ * CCouple.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CCOUPLE_H_
+#define CCOUPLE_H_
+
+class CCouple {
+public:
+	CCouple();
+	~CCouple();
+};
+
+#endif /* CCOUPLE_H_ */

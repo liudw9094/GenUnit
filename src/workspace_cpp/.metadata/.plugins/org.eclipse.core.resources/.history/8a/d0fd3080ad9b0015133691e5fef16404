@@ -1,0 +1,24 @@
+/*
+ * CDataTest.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef CDATATEST_H_
+#define CDATATEST_H_
+
+#include <string>
+
+class CDataTest {
+public:
+	CDataTest(const std::vector<std::string>& args);
+	~CDataTest();
+
+	int run();
+private:
+	bool parseCommands();
+	void showCommands();
+};
+
+#endif /* CDATATEST_H_ */

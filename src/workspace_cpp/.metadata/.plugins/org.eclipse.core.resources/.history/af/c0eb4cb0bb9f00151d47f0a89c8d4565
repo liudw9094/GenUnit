@@ -1,0 +1,17 @@
+/*
+ * CTRJudge.h
+ *
+ *  Created on: Dec 10, 2015
+ *      Author: ldw
+ */
+
+#ifndef CTRJUDGE_H_
+#define CTRJUDGE_H_
+
+class CTRJudge {
+public:
+	CTRJudge();
+	~CTRJudge();
+};
+
+#endif /* CTRJUDGE_H_ */

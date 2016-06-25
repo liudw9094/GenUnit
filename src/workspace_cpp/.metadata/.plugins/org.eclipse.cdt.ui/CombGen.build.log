@@ -1,0 +1,15 @@
+14:41:37 **** Incremental Build of configuration Release for project CombGen ****
+make all 
+Building file: ../CFileReader.cpp
+Invoking: GCC C++ Compiler
+g++ -std=c++0x -I"/home/ldw/workspace_cpp/GenUtils" -O3 -Wall -c -fmessage-length=0 -MMD -MP -MF"CFileReader.d" -MT"CFileReader.o" -o "CFileReader.o" "../CFileReader.cpp"
+Finished building: ../CFileReader.cpp
+ 
+Building target: CombGen
+Invoking: GCC C++ Linker
+g++ -L"/home/ldw/workspace_cpp/GenUtils/Release" -Wl,-rpath='$ORIGIN',--enable-new-dtags -o "CombGen"  ./CCombGen.o ./CCouple.o ./CFileReader.o ./main.o   -lGenUtils
+Finished building target: CombGen
+ 
+
+14:41:37 Build Finished (took 427ms)
+

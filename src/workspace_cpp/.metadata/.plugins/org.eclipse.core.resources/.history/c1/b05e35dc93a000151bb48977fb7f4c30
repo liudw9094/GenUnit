@@ -1,0 +1,271 @@
+/*
+ * Utils.cpp
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+#include <stdlib.h>
+#include <stdio.h>
+#include <errno.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <iostream>
+#include <sys/wait.h>
+#include <signal.h>
+#include <errno.h>
+#include "Utils.h"
+using namespace std;
+
+
+/**
+** mkpath - ensure all directories in path exist
+** Algorithm takes the pessimistic view and works top-down to ensure
+** each directory in path exists, rather than optimistically creating
+** the last element and working backwards.
+*/
+int mkpath(const char *path, mode_t mode)
+{
+	char* p = (char*)path;
+	for (p=strchr(p+1, '/'); p; p=strchr(p+1, '/'))
+	{
+		*p='\0';
+		if (mkdir(path, mode)==-1)
+		{
+			int err = errno;
+			if (err!=EEXIST)
+			{
+				*p='/'; return -1;
+			}
+	    }
+	    *p='/';
+	}
+	return mkdir(path, mode);
+	/*
+	string mkdirCmd = string("mkdir -p \"") + path + "\"";
+	system(mkdirCmd.c_str());
+	*/
+}
+
+string getFileName(const string& filepath)
+{
+	size_t pos = filepath.find_last_of("/\\");
+	string name;
+	if(pos !=std::string::npos && pos < filepath.length())
+		name = filepath.substr(pos+1);
+	return name;
+}
+
+std::string getFileTitle(const std::string& filepath)
+{
+	string filename = getFileName(filepath);
+	size_t pos = filename.rfind(".");
+	if(pos != string::npos)
+		filename[pos] = '\0';
+	return string(filename.c_str());
+}
+
+std::string getRelativeFilePath(const std::string& filepath,const std::string& dir)
+{
+	size_t pos = filepath.find(dir);
+	string p = filepath;
+	if(pos !=std::string::npos && pos < filepath.length())
+		p = filepath.substr(pos+dir.length()+1);
+	return p;
+}
+
+string getDirectory(const string& filepath)
+{
+	size_t pos = filepath.find_last_of("/\\");
+	string name;
+	if(pos !=std::string::npos && pos < filepath.length())
+		name = filepath.substr(0, pos);
+	return name;
+}
+
+vector<string> enumDirs(const string& parentDir)
+{
+	vector<string> childDir;
+	DIR           *d;
+	struct dirent *entry;
+	d = opendir(parentDir.c_str());
+	if (d)
+	{
+		while ((entry = readdir(d)) != NULL)
+		{
+			if (entry->d_type == DT_DIR)
+			{
+				string name = entry->d_name;
+				if(name != "." && name != "..")
+				{
+					string path = parentDir + "/" + entry->d_name;
+					childDir.push_back(path);
+				}
+			}
+		}
+		closedir(d);
+	}
+	return childDir;
+}
+
+vector<string> enumFiles(const string& parentDir, bool recursively /*= false*/)
+{
+	vector<string> childDir;
+	DIR           *d;
+	struct dirent *entry;
+	d = opendir(parentDir.c_str());
+	if (d)
+	{
+		while ((entry = readdir(d)) != NULL)
+		{
+			string name = entry->d_name;
+			if (entry->d_type == DT_REG)
+			{
+				string path = parentDir + "/" + entry->d_name;
+				childDir.push_back(path);
+				cout<<path<<endl;
+			}
+			else if (entry->d_type == DT_DIR && recursively)
+			{
+				if(name != "." && name != "..")
+				{
+					string dirpath = parentDir + "/" + name;
+					vector<string> files = enumFiles(dirpath, recursively);
+					childDir.insert(childDir.end(), files.begin(), files.end());
+				}
+			}
+		}
+		closedir(d);
+	}
+	return childDir;
+}
+
+std::string getexepath()
+{
+  char result[ PATH_MAX ];
+  ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
+  return std::string( result, (count > 0) ? count : 0 );
+}
+
+std::string fixpath(const std::string& path)
+{
+	if(path[0] != '/')
+		return getDirectory(getexepath()) + "/" + path;
+	else
+		return path;
+}
+
+vector<char> getFileContent(const string& filePath)
+{
+	vector<char> buf;
+	FILE *file = fopen(filePath.c_str(), "r");
+	if(file != NULL)
+	{
+		fseek(file, 0, SEEK_END);
+		long size = ftell(file);
+		fseek(file, 0, SEEK_SET);
+		if(size > 0)
+		{
+			buf.resize(size);
+			fread(&buf[0], size, 1, file);
+		}
+		fclose(file);
+	}
+	return buf;
+}
+
+string getLine(const vector<char>& content, size_t &nCur)
+{
+	string line;
+	for(;nCur < content.size() && content[nCur] != '\n'; ++nCur)
+		line.push_back(content[nCur]);
+	if(nCur < content.size() && content[nCur] == '\n')
+	{
+		line.push_back('\n');
+		++nCur;
+	}
+	return line;
+}
+
+bool writeLineToFile(const std::string& filePath, const std::string& str)
+{
+	return true;
+}
+
+static pid_t systemcmd_fork(const std::string& cmd)
+{
+	int p = fork ();
+
+	if (p == -1) {
+		return 0;
+	}
+
+	if (p == 0) {
+#ifdef _DEBUG
+		cout<<"command: "<<cmd<<endl;
+		//cout<<"command: "<<commandRenameCoverageReport<<endl;
+#endif
+		system(cmd.c_str());
+		exit(0);
+	}
+
+	return p;
+}
+bool systemcmd(const std::string& cmd, unsigned int uTimeoutSec /*= -1*/)
+{
+	if(uTimeoutSec == -1)
+	{
+		system(cmd.c_str());
+		return true;
+	}
+	sigset_t mask;
+	sigset_t orig_mask;
+	struct timespec timeout;
+	pid_t pid;
+
+	sigemptyset (&mask);
+	sigaddset (&mask, SIGCHLD);
+
+	if (sigprocmask(SIG_BLOCK, &mask, &orig_mask) < 0) {
+		perror ("sigprocmask");
+		return false;
+	}
+
+	pid = systemcmd_fork(cmd);
+	if(pid == 0)
+	{
+		sigdelset(&mask, SIGCHLD);
+		return false;
+	}
+
+	timeout.tv_sec = uTimeoutSec;
+	timeout.tv_nsec = 0;
+
+	do {
+		if (sigtimedwait(&mask, NULL, &timeout) != 0) {
+			if (errno == EINTR) {
+				/* Interrupted by a signal other than SIGCHLD. */
+				continue;
+			}
+			else if (errno == EAGAIN) {
+				printf ("Timeout, killing child\n");
+				kill (pid, SIGKILL);
+			}
+			else {
+				perror ("sigtimedwait");
+				sigdelset(&mask, SIGCHLD);
+				return false;
+			}
+		}
+		break;
+	} while (1);
+
+	if (waitpid(pid, NULL, 0) < 0) {
+		sigdelset(&mask, SIGCHLD);
+		perror ("waitpid");
+		return false;
+	}
+	return true;
+}

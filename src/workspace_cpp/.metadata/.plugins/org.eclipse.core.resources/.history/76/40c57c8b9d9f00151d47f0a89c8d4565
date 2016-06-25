@@ -1,0 +1,26 @@
+/*
+ * Utils.h
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#ifndef UTILS_H_
+#define UTILS_H_
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <string>
+#include <vector>
+
+int mkpath(const char *path, mode_t mode = S_IRUSR| S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IROTH);
+std::string getFileName(const std::string& filepath);
+std::string getFileTitle(const std::string& filepath);
+std::string getRelativeFilePath(const std::string& filepath,const std::string& dir);
+std::string getDirectory(const std::string& filepath);
+std::vector<std::string> enumDirs(const std::string& parentDir);
+std::vector<std::string>  enumFiles(const std::string& parentDir, bool recursively = false);
+std::string getexepath();
+std::string fixpath(const std::string& path);
+
+#endif /* UTILS_H_ */

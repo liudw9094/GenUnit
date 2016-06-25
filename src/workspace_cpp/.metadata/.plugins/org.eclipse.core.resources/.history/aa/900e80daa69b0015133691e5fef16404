@@ -1,0 +1,233 @@
+/*
+ * CCombGen.cpp
+ *
+ *  Created on: Dec 5, 2015
+ *      Author: ldw
+ */
+
+#include <iostream>
+#include <stdlib.h>
+#include "CCombGen.h"
+
+#include "Utils.h"
+#include "CCouple.h"
+
+using namespace std;
+
+CCombGen::CCombGen(const std::vector<std::string>& args) :
+m_args(args),
+m_mode((_MODE)-1),
+m_nMateRate(-1),
+m_nReproduceRate(-1),
+m_nMutationRate(-1),
+m_nSeed(-1),
+m_nBeginIndex(-1)
+{
+	// TODO Auto-generated constructor stub
+
+}
+
+CCombGen::~CCombGen()
+{
+	// TODO Auto-generated destructor stub
+}
+
+void CCombGen::showCommands()
+{
+	cout<<"Command:"<<endl;
+	cout<<"1) CombGen -g <group directory> <mate percentage (1-1000)> <reproduction rate (1-20)> [<seed>] [<beginIndex>]"<<endl;
+	cout<<"2) CombGen -m <test1dir> <test2dir> <reproduction rate (1-20)> [<seed>] [<beginIndex>]"<<endl;
+}
+
+int CCombGen::run()
+{
+	if (!parseCommands())
+	{
+		showCommands();
+		return -11;
+	}
+	if (m_mode == GROUP)
+		return doGroup();
+	else if (m_mode == MATE)
+		return doMate();
+	else
+		return -1;
+}
+
+bool CCombGen::parseCommands()
+{
+	int nLen = m_args.size();
+	if (nLen < 5 || nLen > 7)
+		return false;
+	if (m_args[1] == "-g")
+	{
+		m_mode = GROUP;
+		m_strGroupDir = m_args[2];
+		m_nMateRate = atoi(m_args[3].c_str());
+		m_nReproduceRate = atoi(m_args[4].c_str());
+		//m_nMutationRate = atoi(m_args[5].c_str());
+		m_nBeginIndex = 0;
+	}
+	else if (m_args[1] == "-m")
+	{
+		m_mode = MATE;
+		m_strM1 = m_args[2];
+		m_strM2 = m_args[3];
+		m_nReproduceRate = atoi(m_args[4].c_str());
+		//m_nMutationRate = atoi(m_args[5].c_str());
+
+	}
+	else
+		return false;
+	if(m_strGroupDir[0] != '/')
+		m_strGroupDir = getDirectory(getexepath()) + "/" + m_strGroupDir;
+	if (nLen < 6)
+	{
+		srand(time(NULL));
+		m_nSeed = rand();
+	}
+	else
+		m_nSeed = atoi(m_args[5].c_str());
+	if (nLen < 7)
+		m_nBeginIndex = 0;
+	else
+		m_nBeginIndex = atoi(m_args[6].c_str());
+	srand(m_nSeed);
+	return true;
+}
+
+struct SCOUPLE
+{
+	string m1, m2;
+	int nSeed;
+};
+
+static vector<SCOUPLE> makeCouples(const vector<string>& childDir, int nMateRate)
+{
+	vector<SCOUPLE> couples;
+	int nDirNum = childDir.size();
+	if(nDirNum >= 2)
+	{
+		struct INDEXED_CHOICE
+		{
+			int index;
+			string path;
+		};
+		vector<INDEXED_CHOICE> mateLevel[11];
+		for(int i = 0; i < childDir.size(); ++i)
+		{
+			INDEXED_CHOICE one;
+			one.index = i;
+			one.path = childDir[i];
+			mateLevel[0].push_back(one);
+		}
+
+		float mateRate = (float)nMateRate/100;
+		int indexBeg = 0;
+		while(mateRate > 0 && !mateLevel[indexBeg].empty())
+		{
+			vector<INDEXED_CHOICE> &vPool = mateLevel[indexBeg];
+			vector<INDEXED_CHOICE> &vNextPool = mateLevel[indexBeg + 1];
+			if(vNextPool.empty())
+				vNextPool.resize(vPool.size());
+			if(vPool.size() >= 2)
+			{
+				int nCount = vPool.size();
+				int nIndex1 = rand() % nCount;
+				int nIndex2 = nIndex1;
+				while(nIndex2 == nIndex1)
+					nIndex2 = rand() % nCount;
+				if(nIndex1 > nIndex2)
+					swap(nIndex1, nIndex2);
+				SCOUPLE couple;
+				couple.m1 = vPool[nIndex1].path;
+				couple.m2 = vPool[nIndex2].path;
+				vNextPool[vPool[nIndex1].index] = vPool[nIndex1];
+				vNextPool[vPool[nIndex2].index] = vPool[nIndex2];
+				vPool.erase(vPool.begin() + nIndex2);
+				vPool.erase(vPool.begin() + nIndex1);
+				couple.nSeed = rand();
+				couples.push_back(couple);
+
+				if(mateRate > 1)
+				{
+					if(vPool.empty())
+					{
+						mateRate = mateRate - 1;
+						indexBeg = indexBeg + 1;
+					}
+				}
+				else
+					mateRate = mateRate - (float)2 / nDirNum;
+			}
+			else if(vPool.size() == 1)
+			{
+				// if there remain one element in the pool, well,
+				// we randomly select an "immoral" couple.
+				int nCount = vNextPool.size();
+				int nIndex1 = rand() % nCount;
+				while(nIndex1 == vPool[0].index)
+					nIndex1 = rand() % nCount;
+
+				SCOUPLE couple;
+				couple.m1 = vPool[0].path;
+				couple.m2 = vNextPool[nIndex1].path;
+				couple.nSeed = rand();
+				couples.push_back(couple);
+
+				vNextPool[vPool[0].index] = vPool[0];
+				vPool.erase(vPool.begin());
+				if(mateRate > 1)
+				{
+					mateRate = mateRate - 1;
+					indexBeg = indexBeg + 1;
+				}
+				else
+					mateRate = mateRate - (float)1 / nDirNum;
+			}
+		}
+	}
+	return couples;
+}
+
+int CCombGen::doGroup()
+{
+	// clean output dir
+	string outputDir = getDirectory(getexepath()) + "/output-comb";
+	string commandRmDir = string("rm -rf \"") + outputDir + "\"";
+#ifdef _DEBUG
+	cout<<"command: " + commandRmDir <<endl;
+#endif
+	system(commandRmDir.c_str());
+
+	// make mates
+	vector<string> childDir = enumDirs(m_strGroupDir);
+	vector<SCOUPLE> couples = makeCouples(childDir, m_nMateRate);
+	if(couples.empty())
+		return -1;
+
+	// run CombGen from couples
+	for(size_t i = 0; i < couples.size(); ++i)
+	{
+		const SCOUPLE& couple = couples[i];
+		m_strM1 = couple.m1;
+		m_strM2 = couple.m2;
+		cout<<m_strM1<<endl;
+		cout<<m_strM2<<endl;
+		m_nSeed = couple.nSeed;
+		srand(m_nSeed);
+		int result = doMate();
+		if (result > 0)
+			m_nBeginIndex += result;
+	}
+
+	return 0;
+}
+
+
+int CCombGen::doMate()
+{
+	string outputDir = getDirectory(getexepath()) + "/output-comb";
+	CCouple cp(m_strM1, m_strM2, outputDir, m_nReproduceRate, m_nBeginIndex);
+	return cp.doCross();
+}

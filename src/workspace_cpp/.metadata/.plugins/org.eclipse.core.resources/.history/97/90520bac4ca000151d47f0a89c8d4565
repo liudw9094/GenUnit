@@ -1,0 +1,200 @@
+/*
+ * CTRJudge.cpp
+ *
+ *  Created on: Dec 10, 2015
+ *      Author: ldw
+ */
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <iostream>
+#include <algorithm>
+#include <string>
+#include <Utils.h>
+#include <sstream>
+#include "CTRJudge.h"
+#include "CCoverageReportReader.h"
+
+using namespace std;
+CTRJudge::CTRJudge(const std::vector<std::string>& args) :
+		m_args(args), m_nTopNum(-1), m_mode((MODE)-1)
+{
+	// TODO Auto-generated constructor stub
+
+}
+
+CTRJudge::~CTRJudge()
+{
+	// TODO Auto-generated destructor stub
+}
+
+int CTRJudge::run()
+{
+	if(!parseCommands())
+	{
+		showCommands();
+		return -1;
+	}
+	return doCommands();
+}
+
+bool CTRJudge::parseCommands()
+{
+	if (m_args.size() != 7 && m_args.size() != 3)
+		return false;
+	if(m_args[1] == "-j")
+	{
+		if(m_args.size() != 7 ||
+			m_args[4] != "-linecoverage" ||
+			m_args[5] != "-top")
+			return false;
+		m_groupDir = fixpath(m_args[2]);
+		m_dstDir = fixpath(m_args[3]);
+		m_nTopNum = atoi(m_args[6].c_str());
+		if(m_nTopNum <= 0)
+			return false;
+		m_mode = MODE_JUDEGE;
+		return true;
+	}
+	else if(m_args[1] == "-e")
+	{
+		m_dstDir = fixpath(m_args[3]);
+		m_mode = MODE_EVALUATION;
+		return true;
+	}
+	else
+		return false;
+}
+
+void CTRJudge::showCommands()
+{
+	cout<<"TRJudge -j <group dir> <dst dir> -linecoverage -top <number>"<<endl;
+	cout<<"TRJudge -e <group dir> -linecoverage"<<endl;
+}
+
+
+int CTRJudge::doCommands()
+{
+	if(m_mode == MODE_JUDEGE || m_mode == MODE_EVALUATION)
+	{
+		if(!searchTestSuites())
+			return -1;
+		double lfTotalLine=0.0, lfLineCov=0.0;
+		if(getReportInfos(lfTotalLine, lfLineCov) <= 0)
+			return -2;
+		cout<<"original line coverage: "<<lfLineCov * 100 / lfTotalLine<<"%"<<endl;
+		if(m_mode == MODE_JUDEGE)
+			return doJudge();
+		else
+			return 0;
+	}
+	return -1;
+}
+
+bool CTRJudge::searchTestSuites()
+{
+	m_vsuitePaths = enumDirs(m_groupDir);
+	return !m_vsuitePaths.empty();
+}
+
+int CTRJudge::getReportInfos(double &lfTotalLine, double &lfLineCov)
+{
+	int nCount = 0;
+	lfTotalLine = lfLineCov = 0.0;
+	for(size_t i = 0; i < m_vsuitePaths.size(); ++i)
+	{
+		if(getReportInfo(m_vsuitePaths[i]))
+		{
+			++nCount;
+			const SUITEREPORT &rp = m_vsuiteReports[m_vsuiteReports.size() - 1];
+			lfTotalLine += rp.lfTotalLine;
+			lfLineCov += rp.lfLineCoverage;
+		}
+	}
+	return nCount;
+}
+
+static void getFilesByLeftKey(const vector<string>& in, vector<string>& out, const char* key)
+{
+	for(size_t i = 0; i < in.size(); ++i)
+	{
+		const string& filepath = in[i];
+		const string filename = getFileName(filepath);
+		size_t pos = filename.find(key);
+		if(pos !=std::string::npos && pos == 0)
+			out.push_back(filepath);
+	}
+}
+static void getCoverageReportFiles(const vector<string>& in, vector<string>& out)
+{
+	getFilesByLeftKey(in, out, "coverage@");
+}
+
+
+bool CTRJudge::getReportInfo(const std::string& suitepath)
+{
+	string szReportDirPath = suitepath + "/DataTest_Report";
+	vector<string> reportPaths = enumFiles(szReportDirPath);
+	vector<string> coverageReportPaths;
+	getCoverageReportFiles(reportPaths, coverageReportPaths);
+	if(coverageReportPaths.empty())
+		return false;
+	SUITEREPORT suiteReport;
+	suiteReport.lfFinalScore = suiteReport.lfLineCoverage = suiteReport.lfTotalLine = 0.0;
+	suiteReport.suitepath = suitepath;
+	suiteReport.coverageReportPaths = coverageReportPaths;
+	for(size_t i = 0; i < coverageReportPaths.size(); ++i)
+	{
+		const string& path = coverageReportPaths[i];
+		CCoverageReportReader reader(path);
+		reader.readFile();
+		if(reader.bFileValid())
+		{
+			suiteReport.lfLineCoverage += reader.lfCoveredNum();
+			suiteReport.lfTotalLine += reader.lfTotalNum();
+		}
+	}
+	if(suiteReport.lfTotalLine != 0.0 && suiteReport.lfTotalLine != -0.0)
+		suiteReport.lfFinalScore = suiteReport.lfLineCoverage / suiteReport.lfTotalLine;
+	m_vsuiteReports.push_back(suiteReport);
+	return true;
+}
+
+int CTRJudge::doJudge()
+{
+	auto fnCompare = [](const SUITEREPORT& _1, const SUITEREPORT& _2){
+		return _1.lfFinalScore < _2.lfFinalScore;
+	};
+	sort(m_vsuiteReports.begin(), m_vsuiteReports.end(), fnCompare);
+	size_t szvalid = m_vsuiteReports.size();
+	if((size_t)m_nTopNum < m_vsuiteReports.size())
+		m_vsuiteReports.erase(m_vsuiteReports.begin() + m_nTopNum, m_vsuiteReports.end());
+	return saveResults();
+}
+
+int CTRJudge::saveResults()
+{
+	double lfTotalLine=0.0, lfLineCov=0.0;
+	for(size_t i = 0; i < m_vsuiteReports.size(); ++i)
+	{
+		const SUITEREPORT& sr = m_vsuiteReports[i];
+		string szSrc = sr.suitepath;
+		string szDst = m_dstDir + "/" + getRelativeFilePath(szSrc, m_groupDir);
+		string command = string("cp ") + "\"" + szSrc + "\" \"" + szDst +  "\"";
+#ifdef _DEBUG
+		cout<<"command: "<<command<<endl;
+#endif
+		system(command.c_str());
+		lfTotalLine += sr.lfTotalLine;
+		lfLineCov += sr.lfFinalScore;
+	}
+
+	stringstream s;
+	s<<"final line coverage: "<<lfLineCov * 100 / lfTotalLine<<"%";
+	cout<<s.str()<<endl;
+
+	string infoFilePath = m_dstDir + "/sumRep.txt";
+	remove(infoFilePath.c_str());
+	writeLineToFile(infoFilePath, string(s.str()));
+}
+
