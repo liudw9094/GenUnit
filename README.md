@@ -8,7 +8,7 @@ This project combined the strategies of test case combination, coverage evaluati
 2. Target Platform
   - Linux
 3. Test Cases  
-  see Report.pdf
+  - see report.pdf
 4. Test results 
 
   | generation        | initial | 1st   | 2nd   | 3rd   | 4th    | 5th   |
