@@ -2,7 +2,7 @@
 This project combined the strategies of test case combination, coverage evaluation and test suite selection. The goal is to implement a genetic test suite generation tools for higher code coverage of the test suites, and to evaluate how much code coverage of unit tests could the tool suite promote.
 
 1. Development
-  - Language: C++ and Java
+  - Languages: C++ and Java
   - IDE: Eclipse
   - Thirdparty Library: gSoap
 2. Target Platform
